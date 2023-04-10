@@ -54,5 +54,13 @@ Webserver translates the raw HTTP request to WSGI (Web Server Gateway Interface)
 
 Aftern installing Django:  
 `django-admin startproject [projectname] [path]`, e.g.  
-`django-admin startproject tutorial .`
+`django-admin startproject tutorial .`  
+to create a server,  
+`python manage.py startapp [appname]`, e.g.  
+`python manage.py startapp application`  
+to create an application within the server.  
 
+App must be hooked to the Django server by adding the name of application to the `INSTALLED_APPS` list in `project\settings.py`.
+
+You can run a server by  
+`python manage.py runserver`.
