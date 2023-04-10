@@ -358,3 +358,29 @@ When working with Django views, HttpResponse is not always used directly, as it 
 
 One can use other techniques, like `render` function, to return HttpResponse without creating an instance by onceself.  
 While it is possible to return handcrafted html as a response, it is easier to rely on templates. `render` function is a tool for working with templates.
+
+##### View Classes
+
+Views may be functions, but also classes. Class-based views are commonly called CBVs. When one writes CBV, one can add instance methods that match up with HTTP methods.  
+Example:  
+```python
+# application/views.py
+from django.http import HttpResponse
+from django.views.generic.base import View
+
+class SampleView(View):
+    def get(self, request, *args, **kwargs):
+        return HttpResponse("Hello from a CBV!")
+```
+`get` method corresponds to a GET HTTP request. Both *args and *kwargs are required by Django for CBVs.  
+That view may be connected to URLconf:  
+```python
+# project/urls.py
+from django.urls import path
+
+from application.views import SampleView
+
+urlpatterns = [
+    path("", SampleView.as_view()),
+]
+```
