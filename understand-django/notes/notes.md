@@ -468,3 +468,22 @@ from django.view.decorators.http import require_POST
 def the_view(request):
     return HttpResponse('Only staff users may POST to this view.')
 ```
+
+##### Mixins to know
+
+Mixin classes are to class-based views as decorators are to function-based views. CBVs still can use decorators, though.
+
+```python
+# application/views.py
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.views.generic.base import TemplateView
+
+class HomeView(LoginRequiredMixin, TemplateView):
+    template_name = 'home.html'
+
+class StaffProtectedView(UserPassesTestMixin, TemplateView):
+    template_name = 'staff_eyes_only.html'
+
+    def test_func(self):
+        return self.request.user.is_staff
+```
