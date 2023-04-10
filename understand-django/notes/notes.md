@@ -147,3 +147,146 @@ re_path(
 * `(?P<slug>[\w-]+)` – another capture group; `\w` means any word character from natural language, plus digits, plus underscores, `-` is literal dash, `+` means that the character class must match 1 or more times
 * `/` – literal interpretation
 * `$` – the pattern must end here
+
+##### Grouping related URLs
+
+Bad:  
+```python
+# project/urls.py
+from django.urls import path
+
+from schools import (
+    views as schools_views,
+)
+from students import (
+    views as students_views,
+)
+
+urlpatterns = [
+    path(
+        "schools/", schools_views.index
+    ),
+    path(
+        "schools/<int:school_id>/",
+        schools_views.school_detail,
+    ),
+    path(
+        "students/",
+        students_views.index,
+    ),
+    path(
+        "students/<int:student_id>/",
+        students_views.student_detail,
+    ),
+]
+```
+
+Good:  
+```python
+# project/urls.py
+from django.urls import include, path
+
+urlpatterns = [
+    path(
+        "schools/",
+        include("schools.urls"),
+    ),
+    path(
+        "students/",
+        include("students.urls"),
+    ),
+]
+
+(...)
+
+# schools/urls.py
+from django.urls import path
+
+from schools import views
+
+urlpatterns = [
+    path("", views.index),
+    path(
+        "<int:school_id>/",
+        views.school_detail
+    ),
+]
+```
+
+##### Naming URLs
+
+```python
+# project/urls.py
+from django.urls import path
+
+from blog import views
+
+urlpatterns = [
+    ...
+    path(
+        "/marketing/blog/categories/",
+        views.categories,
+        name="blog_categories"  # <-- this
+    ),
+    ...
+]
+
+(...)
+
+# application/views.py
+from django.http import (
+    HttpResponseRedirect
+)
+from django.urls import reverse
+
+def old_blog_categories(request):
+    return HttpResponseRedirect(
+        reverse("blog_categories")  # <-- this
+    )
+```
+
+The job of reverse is to look up any path name and return its route equivalent. That means that `reverse("blog_categories") == "/marketing/blog/categories/"`.
+
+##### Name collisions
+
+Both schools and students apps had an index view to represent the root of the respective portions of the project (i.e., schools/ and students/). If we wanted to refer to those views, we’d try to pick the easiest choice of index. Unfortunately, if you pick index, then Django can’t tell which one is the right view for index. The name is ambiguous.  
+Providing a proper namespace is solution. One could prefix name, like that:  
+```python
+# schools/urls.py
+from django.urls import path
+
+from schools import views
+
+urlpatterns = [
+    path(
+        "",
+        views.index,
+        name="schools_index"  # <-- 'schools_' is prefix
+    ),
+    path(
+        "<int:school_id>/",
+        views.school_detail,
+        name="schools_detail"
+    ),
+]
+```
+
+But it's better to declare `app_name` that declares namespace to Django:  
+```python
+# schools/urls.py
+from django.urls import path
+
+from schools import views
+
+app_name = "schools"  # <-- "schools" is namespace
+urlpatterns = [
+    path("", views.index, name="index"),
+    path(
+        "<int:school_id>/",
+        views.school_detail,
+        name="detail"
+    ),
+]
+```
+
+This approach requires reversing, just like in Naming ULRs: `reverse("schools:index") == "/schools/"`.
