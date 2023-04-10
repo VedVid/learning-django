@@ -130,3 +130,20 @@ def blog_by_year(request, year):
     return HttpResponse(data)
 ```  
 Looks like "year" part of the url converter is automatically parsed and passed to blog_by_year function.
+
+Instead of `path` function, one can use `re_path` function and use regex strings.  
+Example:  
+```python
+re_path(
+    r"^blog/(?P<year>[0-9]{4})/(?P<slug>[\w-]+)/$",
+    views.blog_post
+),
+```
+* `r` – raw string, without escape characters
+* `^` – the pattern must start here (so "blog..." is OK, and "myblog..." is NOK)
+* `blog/` – literal interpretation
+* `(?P<year>[0-9]{4})` – capture group; `?P<year>` is the name / argument, `[0-9]` means that only numbers are accepted, and `{4}` means that the number must match exactly four times
+* `/` – literal interpretation
+* `(?P<slug>[\w-]+)` – another capture group; `\w` means any word character from natural language, plus digits, plus underscores, `-` is literal dash, `+` means that the character class must match 1 or more times
+* `/` – literal interpretation
+* `$` – the pattern must end here
