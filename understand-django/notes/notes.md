@@ -95,3 +95,38 @@ String part of path is called *route*. It may be a plain string, but also can fe
 A good rule of thumb is to include path entries that match on ranges of values with converters after the specific values.
 
 ##### Views
+
+A view is code that takes a request and returns a response.
+
+Very basic view example:  
+```python
+from django.http import (
+    HttpRequest,
+    HttpResponse
+)
+
+def some_view(
+    request: HttpRequest
+) -> HttpResponse:
+    return HttpResponse('Hello World')
+```
+
+Another example:  
+```python
+# urls
+    path(
+        "blog/<int:year>/",
+        views.blog_by_year
+    ),
+
+(...)
+
+# views
+from django.http import HttpResponse
+
+def blog_by_year(request, year):
+    # ... some code to handle the year
+    data = 'Some data set by code above'
+    return HttpResponse(data)
+```  
+Looks like "year" part of the url converter is automatically parsed and passed to blog_by_year function.
