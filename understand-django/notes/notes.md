@@ -290,3 +290,71 @@ urlpatterns = [
 ```
 
 This approach requires reversing, just like in Naming ULRs: `reverse("schools:index") == "/schools/"`.
+
+
+#### Views On Views
+
+A view is a chunk of code that receives an HTTP request and returns an HTTP response.
+
+##### Function Views
+
+The function takes an HttpRequest instance as input and returns an HttpResponse (or one of its many subclasses) as output.  
+Basic "Hello World" example:  
+```python
+# application/views.py
+from django.http import HttpResponse
+
+def hello_world(request):
+    return HttpResponse('Hello World')
+```
+
+##### HttpRequest
+
+HTTP is protocol, HttpRequest is Python class handling, well, HTTP requests. Example of such request:  
+```
+POST /courses/0371addf-88f7-49e4-ac4d-3d50bb39c33a/edit/ HTTP/1.1
+Host: 0.0.0.0:5000
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 155
+Origin: http://0.0.0.0:5000
+Connection: keep-alive
+Upgrade-Insecure-Requests: 1
+Pragma: no-cache
+Cache-Control: no-cache
+
+
+name=Science
+&monday=on
+&tuesday=on
+&wednesday=on
+&thursday=on
+&friday=on
+```
+When Django receives a request like that, it parses the data and store it in HttpRequest instance.
+
+Explanation:
+* `method` – matches the HTTP method of POST
+* `content_type` – instructs Django on how to handle the data in the request
+* `POST` – for POST requests, Django processes the form data and stores the data into a dictionary-like structure; request.POST['name'] would be Science
+* `GET` – anything added to the query string (i.e., the content after a `?` character such as `student=Matt` in `/courses/?student=Matt`) is stored in a dictionary-like attribute as well
+* `headers` – this is where all the HTTP headers like Host, Accept-Language, and the others are stored; headers is also dictionary-like and can be accessed like request.headers['Host']
+
+HttpRequest instances are a common place to attach extra data. Django requests pass through many pieces in the framework. This makes the objects great candidates for extra features that you may require.
+
+##### HttpResponse
+
+A response instance will include all the necessary information to create a valid HTTP response for a user’s browser.
+
+Some of the HttpResponse attributes:
+* `status_code` – indicates success / failure; 200 is the usual "success" code, everything up from 400 is error (e.g. code 404 when requested resource is not found)
+* `content` – content you provide to the user, stored in bytes
+
+When working with Django views, HttpResponse is not always used directly, as it has a variety of subclasses, e.g.:
+* `HttpResponseRedirect` – used to send a user to a different page
+* `HttpResponseNotFound` – creates "404 Not Found" response
+* `HttpResponseForbidden` – to block a user from accessing part of the website ("403 Forbidden")
+
+One can use other techniques, like `render` function, to return HttpResponse without creating an instance by onceself.  
+While it is possible to return handcrafted html as a response, it is easier to rely on templates. `render` function is a tool for working with templates.
