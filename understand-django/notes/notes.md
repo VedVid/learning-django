@@ -64,3 +64,229 @@ App must be hooked to the Django server by adding the name of application to the
 
 You can run a server by  
 `python manage.py runserver`.
+
+
+#### Chapter 2 – URLs Lead The Way
+
+##### URLconf and paths
+
+URLs can come in many forms. Django follows the instructions set in `URLconf` inside `project\urls.py`.
+
+URLconf is, kind of, list of URL paths that Django will try to match. When Django finds a matching path, it will route a HTTP request to a chunk of Python code (called *view*) that is associated with that path.
+
+URLconf example:  
+```python
+# project/urls.py
+from django.urls import path
+
+from application import views
+
+urlpatterns = [
+    path("", views.home),
+    path("about/", views.about),
+    path("contact/", views.contact),
+    path("terms/", views.terms),
+]
+```
+
+urlpatterns is read from the start to the end, and Django stops scanning as soon as it finds the matching pattern.  
+When scanning urlpatterns, Django ignores `http://`, domain, and slash after domain, so for example, `"about/"` is request to `https://www.example.com/about/`, and `""` is request to `https://www.example.com/`.  
+String part of path is called *route*. It may be a plain string, but also can feature a structures like *converters*, like `"blog/<int:year>/<slug:slug>/"`.  
+A good rule of thumb is to include path entries that match on ranges of values with converters after the specific values.
+
+##### Views
+
+A view is code that takes a request and returns a response.
+
+Very basic view example:  
+```python
+from django.http import (
+    HttpRequest,
+    HttpResponse
+)
+
+def some_view(
+    request: HttpRequest
+) -> HttpResponse:
+    return HttpResponse('Hello World')
+```
+
+Another example:  
+```python
+# urls
+    path(
+        "blog/<int:year>/",
+        views.blog_by_year
+    ),
+
+(...)
+
+# views
+from django.http import HttpResponse
+
+def blog_by_year(request, year):
+    # ... some code to handle the year
+    data = 'Some data set by code above'
+    return HttpResponse(data)
+```  
+Looks like "year" part of the url converter is automatically parsed and passed to blog_by_year function.
+
+Instead of `path` function, one can use `re_path` function and use regex strings.  
+Example:  
+```python
+re_path(
+    r"^blog/(?P<year>[0-9]{4})/(?P<slug>[\w-]+)/$",
+    views.blog_post
+),
+```
+* `r` – raw string, without escape characters
+* `^` – the pattern must start here (so "blog..." is OK, and "myblog..." is NOK)
+* `blog/` – literal interpretation
+* `(?P<year>[0-9]{4})` – capture group; `?P<year>` is the name / argument, `[0-9]` means that only numbers are accepted, and `{4}` means that the number must match exactly four times
+* `/` – literal interpretation
+* `(?P<slug>[\w-]+)` – another capture group; `\w` means any word character from natural language, plus digits, plus underscores, `-` is literal dash, `+` means that the character class must match 1 or more times
+* `/` – literal interpretation
+* `$` – the pattern must end here
+
+##### Grouping related URLs
+
+Bad:  
+```python
+# project/urls.py
+from django.urls import path
+
+from schools import (
+    views as schools_views,
+)
+from students import (
+    views as students_views,
+)
+
+urlpatterns = [
+    path(
+        "schools/", schools_views.index
+    ),
+    path(
+        "schools/<int:school_id>/",
+        schools_views.school_detail,
+    ),
+    path(
+        "students/",
+        students_views.index,
+    ),
+    path(
+        "students/<int:student_id>/",
+        students_views.student_detail,
+    ),
+]
+```
+
+Good:  
+```python
+# project/urls.py
+from django.urls import include, path
+
+urlpatterns = [
+    path(
+        "schools/",
+        include("schools.urls"),
+    ),
+    path(
+        "students/",
+        include("students.urls"),
+    ),
+]
+
+(...)
+
+# schools/urls.py
+from django.urls import path
+
+from schools import views
+
+urlpatterns = [
+    path("", views.index),
+    path(
+        "<int:school_id>/",
+        views.school_detail
+    ),
+]
+```
+
+##### Naming URLs
+
+```python
+# project/urls.py
+from django.urls import path
+
+from blog import views
+
+urlpatterns = [
+    ...
+    path(
+        "/marketing/blog/categories/",
+        views.categories,
+        name="blog_categories"  # <-- this
+    ),
+    ...
+]
+
+(...)
+
+# application/views.py
+from django.http import (
+    HttpResponseRedirect
+)
+from django.urls import reverse
+
+def old_blog_categories(request):
+    return HttpResponseRedirect(
+        reverse("blog_categories")  # <-- this
+    )
+```
+
+The job of reverse is to look up any path name and return its route equivalent. That means that `reverse("blog_categories") == "/marketing/blog/categories/"`.
+
+##### Name collisions
+
+Both schools and students apps had an index view to represent the root of the respective portions of the project (i.e., schools/ and students/). If we wanted to refer to those views, we’d try to pick the easiest choice of index. Unfortunately, if you pick index, then Django can’t tell which one is the right view for index. The name is ambiguous.  
+Providing a proper namespace is solution. One could prefix name, like that:  
+```python
+# schools/urls.py
+from django.urls import path
+
+from schools import views
+
+urlpatterns = [
+    path(
+        "",
+        views.index,
+        name="schools_index"  # <-- 'schools_' is prefix
+    ),
+    path(
+        "<int:school_id>/",
+        views.school_detail,
+        name="schools_detail"
+    ),
+]
+```
+
+But it's better to declare `app_name` that declares namespace to Django:  
+```python
+# schools/urls.py
+from django.urls import path
+
+from schools import views
+
+app_name = "schools"  # <-- "schools" is namespace
+urlpatterns = [
+    path("", views.index, name="index"),
+    path(
+        "<int:school_id>/",
+        views.school_detail,
+        name="detail"
+    ),
+]
+```
+
+This approach requires reversing, just like in Naming ULRs: `reverse("schools:index") == "/schools/"`.
