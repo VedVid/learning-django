@@ -384,3 +384,87 @@ urlpatterns = [
     path("", SampleView.as_view()),
 ]
 ```
+
+##### Out Of The Box Views
+
+**RedirectView** sends the user to another place. One can either subclass `RedirectView` or use `as_view` method. Both ways is shown in the example below.  
+```python
+# project/urls.py
+from django.urls import path
+from django.views.generic.base import RedirectView
+
+from application.views import NewView
+
+class SubclassedRedirectView(RedirectView):
+    pattern_name = 'new-view'
+
+urlpatterns = [
+    path("old-path/", SubclassedRedirectView.as_view()),
+    # The RedirectView below acts like SubclassedRedirectView.
+    path("old-path/", RedirectView.as_view(pattern_name='new-view')),
+    path("new-path/", NewView.as_view(), name='new-view'),
+]
+```
+
+**TemplateView** allows producing a response using nothing more than a template name. Example:  
+```python
+# application/views.py
+from django.views.generic.base import TemplateView
+
+class HomeView(TemplateView):
+    template_name = 'home.html'
+```
+
+Django provides a wide array of view classes that serve a variety of purposes, among others:
+* display and handle HTML forms so users can input data and send the data to the application
+* pull data from a database and show an individual record to the user (e.g., a webpage to see facts about a particular movie)
+* pull data from a database and show information from a collection of records to the user (e.g., showing the cast of actors from a movie)
+* show data from specific time ranges like days, weeks, and months.
+
+##### Useful Decorators
+
+`@require_POST` – return "405 method not allowed" if method is not POST.
+```python
+# application/views.py
+from django.http import HttpResponse
+from django.view.decorators.http import require_POST
+
+@require_POST
+def the_view(request):
+    return HttpResponse('Method was a POST.')
+```
+
+`@login_required` – an unauthicated user will be redirected to the login page.
+```python
+# application/views.py
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
+
+@login_required
+def the_view(request):
+    return HttpResponse('This view is only viewable to authenticated users.')
+```
+
+`@user_passes_test` – controls which users should be allowed to access the view.
+```python
+# application/views.py
+from django.contrib.auth.decorators import user_passes_test
+from django.http import HttpResponse
+
+@user_passes_test(lambda user: user.is_staff)
+def the_view(request):
+    return HttpResponse('Only visible to staff users.')
+```
+
+Decorators can be stacked together:
+```python
+# application/views.py
+from django.contrib.auth.decorators import user_passes_test
+from django.http import HttpResponse
+from django.view.decorators.http import require_POST
+
+@require_POST
+@user_passes_test(lambda user: user.is_staff)
+def the_view(request):
+    return HttpResponse('Only staff users may POST to this view.')
+```
