@@ -64,3 +64,34 @@ App must be hooked to the Django server by adding the name of application to the
 
 You can run a server by  
 `python manage.py runserver`.
+
+
+#### Chapter 2 – URLs Lead The Way
+
+##### URLconf and paths
+
+URLs can come in many forms. Django follows the instructions set in `URLconf` inside `project\urls.py`.
+
+URLconf is, kind of, list of URL paths that Django will try to match. When Django finds a matching path, it will route a HTTP request to a chunk of Python code (called *view*) that is associated with that path.
+
+URLconf example:  
+```python
+# project/urls.py
+from django.urls import path
+
+from application import views
+
+urlpatterns = [
+    path("", views.home),
+    path("about/", views.about),
+    path("contact/", views.contact),
+    path("terms/", views.terms),
+]
+```
+
+urlpatterns is read from the start to the end, and Django stops scanning as soon as it finds the matching pattern.  
+When scanning urlpatterns, Django ignores `http://`, domain, and slash after domain, so for example, `"about/"` is request to `https://www.example.com/about/`, and `""` is request to `https://www.example.com/`.  
+String part of path is called *route*. It may be a plain string, but also can feature a structures like *converters*, like `"blog/<int:year>/<slug:slug>/"`.  
+A good rule of thumb is to include path entries that match on ranges of values with converters after the specific values.
+
+##### Views
