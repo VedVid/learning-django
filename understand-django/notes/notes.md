@@ -487,3 +487,91 @@ class StaffProtectedView(UserPassesTestMixin, TemplateView):
     def test_func(self):
         return self.request.user.is_staff
 ```
+
+
+#### Templates For User Interfaces
+
+Data about templates is stored in `TEMPLATES` list in `settings.py` file.
+
+If `'APP_DIRS'` key is set to True, then Django will look for the templates inside "template" directory in each application (including the third-party apps) directory.
+
+Key `'DIRS'` let one specify directory where the user-created templates will be stored. E.g., setting it to the `[BASE_DIR / "templates"]` will make Django look for the templates inside "tempaltes" directory in the root project folder.
+
+Templates render user interface combining dynamic data with static template.
+
+Naive example:  
+```python
+# application/views.py
+
+from django.shortcuts import render
+
+def hello_view(request):
+    context = {'name': 'Johnny'}
+    return render(
+        request,
+        'hello.txt',
+        context
+    )
+
+(...)
+
+# templates/hello.txt
+Hello {{ name }}
+```
+
+Example of using template inside CBV:  
+```python
+# application/views.py
+
+from django.views.generic.base import TemplateView
+
+class HelloView(TemplateView):
+    template_name = 'hello.txt'
+
+    def get_context_data(
+        self,
+        *args,
+        **kwargs
+    ):
+        context = super().get_context_data(
+            *args, **kwargs)
+        context['name'] = 'Johnny'
+        return context
+```
+
+If `context` is more complex, e.g.:  
+```python
+context = {
+    'address': {
+        'street': '123 Main St.',
+        'city': 'Beverly Hills',
+        'state': 'CA',
+        'zip_code': '90210',
+    }
+}
+```
+
+then accessing data by template by something like `{{ address['street'] }}` would not work. Instead, the dot notation should be used: `{{ address.street }}`.
+
+Tags (programming-like constructs, like if-then-else) always look that way: `{% ...command... %}`. Example:  
+```
+{% if user.is_authenticated %}
+    <h1>Welcome, {{ user.username }}</h1>
+{% else %}
+    <h1>Welcome, guest</h1>
+{% endif %}
+```
+
+Another tag is a for loop:  
+```
+<p>Prices:</p>
+<ul>
+{% for item in items %}
+    <li>{{ item.name }} costs {{ item.price }}.</li>
+{% endfor %}
+</ul>
+```
+
+##### More context on context
+
+
