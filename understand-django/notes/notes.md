@@ -563,7 +563,7 @@ Tags (programming-like constructs, like if-then-else) always look that way: `{% 
 ```
 
 Another tag is a for loop:  
-```
+```html
 <p>Prices:</p>
 <ul>
 {% for item in items %}
@@ -573,5 +573,59 @@ Another tag is a for loop:
 ```
 
 ##### More context on context
+
+Context processors are functions that receive an HttpRequest and must return a dictionary that merges with any other context that will be passed to a template. The “dark side” of context processors is that they run for all requests.
+
+##### Reusable Chunks Of Templates
+
+Non-reusable file:
+```html
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="styles.css">
+    </head>
+    <body>
+        <h1>Learn about our company</h1>
+    </body>
+</html>
+```
+
+Reusable file (e.g. `base.html`):
+```html
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="styles.css">
+    </head>
+    <body>
+        {% block main %}{% endblock %}
+    </body>
+</html>
+```
+
+Using reusable file:
+```html
+{% extends "base.html" %}
+
+{% block main %}
+    <h1>Hello from the Home page</h1>
+{% endblock %}
+```
+
+Composition of multiple reusable files:
+```html
+<!DOCTYPE html>
+<html>
+    {% include "head.html" %}
+    <body>
+        {% include "navigation.html" %}
+        {% block main %}{% endblock %}
+    </body>
+    {% include "footer.html" %}
+</html>
+```
+
+##### The Templates Toolbox
 
 
