@@ -628,4 +628,20 @@ Composition of multiple reusable files:
 
 ##### The Templates Toolbox
 
+*From this point, the fourth chapter needs to be revisited in the future. Learning all that theory without actually applying the knowledge in practice doesn't help that much.*
 
+Other useful tags:  
+```html
+<a href="{% url "a_named_view" %}">Go to a named view</a>
+
+&copy; {% now "Y" %} Your Company LLC.
+
+{% spaceless %}
+<ul class="navigation">
+    <li><a href="/home/">Home</a></li>
+    <li><a href="/about/">About</a></li>
+</ul>
+{% endspaceless %}
+```
+
+...tbc...
