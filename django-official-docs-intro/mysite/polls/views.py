@@ -3,7 +3,7 @@ from django.shortcuts import render
 # Create your views here.
 
 from django.http import Http404, HttpResponse
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from django.template import loader
 
 from .models import Question
@@ -21,11 +21,13 @@ def index(request):
 
 
 def detail(request, question_id):
-    try:
-        # pk --> primary key
-        question = Question.objects.get(pk=question_id)
-    except Question.DoesNotExist:
-        raise Http404("Question does not exist")
+    #try:
+    #    # pk --> primary key
+    #    question = Question.objects.get(pk=question_id)
+    #except Question.DoesNotExist:
+    #    raise Http404("Question does not exist")
+    # Shortcut:
+    question = get_object_or_404(Question, pk-question_id)
     return render(
         request,
         "polls/detail.html",
