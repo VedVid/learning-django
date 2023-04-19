@@ -20,12 +20,9 @@ class IndexView(generic.ListView):
         Return the last five published questions (not including those
         set to be published in the future).
         """
-        return Question.objects.filter(
-            pub_date__lte=timezone.now()).order_by(
+        return Question.objects.filter(pub_date__lte=timezone.now()).order_by(
             "-pub_date"
-        )[
-            :5
-        ]
+        )[:5]
 
 
 class DetailView(generic.DetailView):
@@ -54,9 +51,4 @@ def vote(request, question_id):
     else:
         selected_choice.votes += 1
         selected_choice.save()
-        return HttpResponseRedirect(
-            reverse(
-                "polls:results",
-                args=(question.id,)
-            )
-        )
+        return HttpResponseRedirect(reverse("polls:results", args=(question.id,)))
