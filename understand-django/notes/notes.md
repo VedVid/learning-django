@@ -716,3 +716,187 @@ def champion_welcome(name, level):
 
 Custom tags may be used like any other built-in tag.
 
+#### Chapter 5 – User Interaction With Forms
+
+Django forms are built upon web forms. HTML can describe what kind of data is expected, by using tags. The primary HTML tags are `form`, `input`, and `select`.
+
+`form` tag is container for all data to be sent to the application. `form` has two cricital attributes: `action` and `method`.
+`action` specifies where user data should be sent to. Leaving out `action` or using `action=""` will send data as HTTP request to the same URL that the user's browser is on.
+`method` dictates which HTTP method to use: `GET` or `POST`.
+
+Example:
+```html
+<form method="GET" action="/some/form/">
+    <input type="text" name="message">
+	<button type="submit">Send me!</button>
+</form>
+```
+
+Since the form's method is `GET`, the data will be sent as a part of the URL in a querystring, like `/some/form/message=Hello`. Most useful when the data does not need to be saved, and when the user needs to query something (e.g. setting filters in a web shop).
+
+`POST` method is used when data needs to be secure or saved withing an application. `POST` sends the data in the body of the HTTP request.
+
+`input` tag lets developer set `name` and `type` attributes. `type` may be, among others, `checkbox`, `password` or `text`.
+
+`select` tag lets users make a choice from a list of options.
+
+##### Django Forms
+
+Django forms act as a bridge between HTML forms and Python classes and data types.
+
+Example of class form:
+```python
+# application/forms.py
+
+from django import forms
+
+class ContactForm(forms.Form):
+    name = forms.CharField(
+	    max_length=100
+	)
+	email = forms.EmailField()
+	message = forms.CharField(
+	    max_length=1000
+	)
+```
+
+One can take this form and add it to a view's context as `form`, then render it in a template. By default form uses an HTML table, but it may be simplified with `as_p` method that will use paragraph tags instead of form elements.
+
+```html
+{{ form.as_p }}
+```
+will be rendered by Django as
+```html
+<p><label for="id_name">Name:</label>
+    <input type="text" name="name" maxlength="100" required id="id_name"></p>
+<p><label for="id_email">Email:</label>
+    <input type="email" name="email" required id="id_email"></p>
+<p><label for="id_message">Message:</label>
+    <input type="text" name="message" maxlength="1000" required id="id_message"></p>
+```
+
+To make it possible to submit such form, the rendered output needs to be wrapped with a `form` tag, and include a submit button and CSRF token (security measure).
+
+Naive example:
+```html
+<form action="{% url "some-form-url" %}" method="POST">
+    {% csrf_token %}
+	{{ form.as_p }}
+	<p><input type="submit" value="Send the form!"></p>
+</form>
+```
+
+```python
+# application/views.py
+
+from django.http import HttpResponseRedirect
+from django.shortcuts import render
+from django.urls import reverse
+
+from .forms import ContactForm
+
+def contact_us(request):
+    if request.method == "POST":
+        form = ContactForm(request.POST)
+		if form.is_valid():
+		    # Do something with the form data,
+			# like send an email.
+			return HttpResponseRedirect(
+		        reverse("some-form-success-url")
+			)
+	else:
+	    form = ContactForm()
+	
+	return render(
+	    request,
+		"contact_form.html",
+		{"form": form},
+	)
+```
+
+The view pattern presented above is so common that Django provides a build-in view, called FormView, to what is done in the example.
+
+```python
+# application/views.py
+
+from django.views.generic import FormView
+from django.urls import reverse
+
+from .forms import ContactForm
+
+class ContactUs(FormView):
+    form_class = ContactForm
+	template_name = "contact_form.html"
+	
+	def get_success_url(self):
+	    return reverse("some-form-success-view")
+	
+	def form_valid(self, form):
+	    # Do something with the form data,
+		# like send an email.
+		return super().form_valid(form)
+```
+
+##### Form Fields
+
+By default each value in form is a string, and that string is later parsed and converted to a correct datatype by Django.
+
+Some fields are associated with particular Django widgets; e.g. `CheckboxInput` is default widget for `BooleanField`.
+
+Most popular fields:
+* CharField,
+* EmailField,
+* DateField,
+* ChoiceField.
+
+`required` marks a field as required, so it must have a value.
+
+`label` sets the text used for the label tag that is rendered with a form `input`.
+
+`help_text` will render additional text by a form field.
+
+##### Validating Forms
+
+Method `is_valid` handles each of the fields: checks for expected structure, final data types, etc. This process is called "cleaning". Each field must have a `clean` method that the form will call when `is_valid` is called.
+
+When `is_valid` is `True`, the form's data will be in a dictionary named `cleaned_data` with keys that match the field names declared by the form.
+With the validated data, one access `cleaned_data` to do the work.
+
+Example:
+```python
+if form.is_valid():
+    email = form.cleaned_data["email"]
+	comment = form.cleaned_data["comment"]
+	create_support_ticket(email, comment)
+	return HttpResponseRedirect(
+	    reverse("feedback-received")
+	)
+```
+
+When `is_valid` is false, Django will store the errors in an `errors` attribute. This attribute will be used when the form is re-rendered on the page.
+
+Developer can overwrite cleaning methods. The new method must have this form: `clean_<fieldname>`.
+```python
+# application/forms.py
+
+class SignUpForm(forms.Form):
+    email = forms.EmailField()
+	password = forms.CharField(
+	    widget=forms.PasswordInput
+	)
+	
+	def clean_email(self):
+	    email = self.cleaned_data["email"]
+		if "bob" not in email:
+		    raise forms.ValidationError(
+			    "Sorry, you are not a Bob."
+			)
+		return email
+```
+
+Three points to remember about:
+* `clean_email` will only try to clean the `email` field
+* if validation fails, the code should raise a `ValidationError`; Django will handle that and will put the error in the right format in the `errors` attribute of the form
+* if everything is good, be sure to return the cleaned data.
+
+
