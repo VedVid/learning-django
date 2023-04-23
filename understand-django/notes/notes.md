@@ -837,3 +837,22 @@ class ContactUs(FormView):
 		return super().form_valid(form)
 ```
 
+##### Form Fields
+
+By default each value in form is a string, and that string is later parsed and converted to a correct datatype by Django.
+
+Some fields are associated with particular Django widgets; e.g. `CheckboxInput` is default widget for `BooleanField`.
+
+Most popular fields:
+* CharField,
+* EmailField,
+* DateField,
+* ChoiceField.
+
+`required` marks a field as required, so it must have a value.
+
+`label` sets the text used for the label tag that is rendered with a form `input`.
+
+`help_text` will render additional text by a form field.
+
+
