@@ -855,4 +855,48 @@ Most popular fields:
 
 `help_text` will render additional text by a form field.
 
+##### Validating Forms
+
+Method `is_valid` handles each of the fields: checks for expected structure, final data types, etc. This process is called "cleaning". Each field must have a `clean` method that the form will call when `is_valid` is called.
+
+When `is_valid` is `True`, the form's data will be in a dictionary named `cleaned_data` with keys that match the field names declared by the form.
+With the validated data, one access `cleaned_data` to do the work.
+
+Example:
+```python
+if form.is_valid():
+    email = form.cleaned_data["email"]
+	comment = form.cleaned_data["comment"]
+	create_support_ticket(email, comment)
+	return HttpResponseRedirect(
+	    reverse("feedback-received")
+	)
+```
+
+When `is_valid` is false, Django will store the errors in an `errors` attribute. This attribute will be used when the form is re-rendered on the page.
+
+Developer can overwrite cleaning methods. The new method must have this form: `clean_<fieldname>`.
+```python
+# application/forms.py
+
+class SignUpForm(forms.Form):
+    email = forms.EmailField()
+	password = forms.CharField(
+	    widget=forms.PasswordInput
+	)
+	
+	def clean_email(self):
+	    email = self.cleaned_data["email"]
+		if "bob" not in email:
+		    raise forms.ValidationError(
+			    "Sorry, you are not a Bob."
+			)
+		return email
+```
+
+Three points to remember about:
+* `clean_email` will only try to clean the `email` field
+* if validation fails, the code should raise a `ValidationError`; Django will handle that and will put the error in the right format in the `errors` attribute of the form
+* if everything is good, be sure to return the cleaned data.
+
 
