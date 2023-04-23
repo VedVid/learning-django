@@ -644,4 +644,75 @@ Other useful tags:
 {% endspaceless %}
 ```
 
-...tbc...
+##### Tools to build templates
+
+Put the tags in the correct location. `templatetags` Python package inside Django application is necessary, with a module inside. It should look like that:
+
+```
+application
++-- templatetags
+|   +-- __init__.py
+|   +-- custom_tags.py
++-- __init__.py
++-- ...
++-- models.py
++-- views.py
+```
+
+Next, one must make a filter and register it:
+```python
+# application/templatetags/custom_tags.py
+
+import random
+from django import template
+
+register = template.Library()
+
+@register.filter
+def add_pizazz(value):
+    pieces_of_flair = [
+	    " Amazing!",
+		" Wowza!",
+		" Unbelievable!",
+	]
+	return value + random.choice(pieces_of_flair)
+```
+
+It may be used with variable like that:
+```html
+{% load custom_tags %}
+
+{{ message|add_pizzazz}}
+```
+Note that loading custom_tags is necessary to use them.
+
+Making tags is very similar to making filters:
+```python
+# application/templatetags/custom_tags.py
+
+import random
+from django import template
+
+register = template.Library()
+
+@register.simple_tag
+def champion_welcome(name, level):
+    if level > 42:
+	    welcome = f"Hello great champion {name}!"
+	elif level > 20:
+	    welcome = f"Greeting noble warrior {name}!"
+	elif level > 5:
+	    welcome = f"Hello {name}."
+	else:
+	    welcome = "Oh, it's you."
+	return welcome
+```
+
+```html
+{% load custom_tags %}
+
+{% champion_welcome "He-Man" 50 %}
+```
+
+Custom tags may be used like any other built-in tag.
+
