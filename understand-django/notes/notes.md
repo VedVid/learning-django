@@ -740,3 +740,100 @@ Since the form's method is `GET`, the data will be sent as a part of the URL in 
 
 `select` tag lets users make a choice from a list of options.
 
+##### Django Forms
+
+Django forms act as a bridge between HTML forms and Python classes and data types.
+
+Example of class form:
+```python
+# application/forms.py
+
+from django import forms
+
+class ContactForm(forms.Form):
+    name = forms.CharField(
+	    max_length=100
+	)
+	email = forms.EmailField()
+	message = forms.CharField(
+	    max_length=1000
+	)
+```
+
+One can take this form and add it to a view's context as `form`, then render it in a template. By default form uses an HTML table, but it may be simplified with `as_p` method that will use paragraph tags instead of form elements.
+
+```html
+{{ form.as_p }}
+```
+will be rendered by Django as
+```html
+<p><label for="id_name">Name:</label>
+    <input type="text" name="name" maxlength="100" required id="id_name"></p>
+<p><label for="id_email">Email:</label>
+    <input type="email" name="email" required id="id_email"></p>
+<p><label for="id_message">Message:</label>
+    <input type="text" name="message" maxlength="1000" required id="id_message"></p>
+```
+
+To make it possible to submit such form, the rendered output needs to be wrapped with a `form` tag, and include a submit button and CSRF token (security measure).
+
+Naive example:
+```html
+<form action="{% url "some-form-url" %}" method="POST">
+    {% csrf_token %}
+	{{ form.as_p }}
+	<p><input type="submit" value="Send the form!"></p>
+</form>
+```
+
+```python
+# application/views.py
+
+from django.http import HttpResponseRedirect
+from django.shortcuts import render
+from django.urls import reverse
+
+from .forms import ContactForm
+
+def contact_us(request):
+    if request.method == "POST":
+        form = ContactForm(request.POST)
+		if form.is_valid():
+		    # Do something with the form data,
+			# like send an email.
+			return HttpResponseRedirect(
+		        reverse("some-form-success-url")
+			)
+	else:
+	    form = ContactForm()
+	
+	return render(
+	    request,
+		"contact_form.html",
+		{"form": form},
+	)
+```
+
+The view pattern presented above is so common that Django provides a build-in view, called FormView, to what is done in the example.
+
+```python
+# application/views.py
+
+from django.views.generic import FormView
+from django.urls import reverse
+
+from .forms import ContactForm
+
+class ContactUs(FormView):
+    form_class = ContactForm
+	template_name = "contact_form.html"
+	
+	def get_success_url(self):
+	    return reverse("some-form-success-view")
+	
+	def form_valid(self, form):
+	    # Do something with the form data,
+		# like send an email.
+		return super().form_valid(form)
+```
+
