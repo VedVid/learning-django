@@ -487,3 +487,232 @@ class StaffProtectedView(UserPassesTestMixin, TemplateView):
     def test_func(self):
         return self.request.user.is_staff
 ```
+
+
+#### Templates For User Interfaces
+
+Data about templates is stored in `TEMPLATES` list in `settings.py` file.
+
+If `'APP_DIRS'` key is set to True, then Django will look for the templates inside "template" directory in each application (including the third-party apps) directory.
+
+Key `'DIRS'` let one specify directory where the user-created templates will be stored. E.g., setting it to the `[BASE_DIR / "templates"]` will make Django look for the templates inside "tempaltes" directory in the root project folder.
+
+Templates render user interface combining dynamic data with static template.
+
+Naive example:  
+```python
+# application/views.py
+
+from django.shortcuts import render
+
+def hello_view(request):
+    context = {'name': 'Johnny'}
+    return render(
+        request,
+        'hello.txt',
+        context
+    )
+
+(...)
+
+# templates/hello.txt
+Hello {{ name }}
+```
+
+Example of using template inside CBV:  
+```python
+# application/views.py
+
+from django.views.generic.base import TemplateView
+
+class HelloView(TemplateView):
+    template_name = 'hello.txt'
+
+    def get_context_data(
+        self,
+        *args,
+        **kwargs
+    ):
+        context = super().get_context_data(
+            *args, **kwargs)
+        context['name'] = 'Johnny'
+        return context
+```
+
+If `context` is more complex, e.g.:  
+```python
+context = {
+    'address': {
+        'street': '123 Main St.',
+        'city': 'Beverly Hills',
+        'state': 'CA',
+        'zip_code': '90210',
+    }
+}
+```
+
+then accessing data by template by something like `{{ address['street'] }}` would not work. Instead, the dot notation should be used: `{{ address.street }}`.
+
+Tags (programming-like constructs, like if-then-else) always look that way: `{% ...command... %}`. Example:  
+```
+{% if user.is_authenticated %}
+    <h1>Welcome, {{ user.username }}</h1>
+{% else %}
+    <h1>Welcome, guest</h1>
+{% endif %}
+```
+
+Another tag is a for loop:  
+```html
+<p>Prices:</p>
+<ul>
+{% for item in items %}
+    <li>{{ item.name }} costs {{ item.price }}.</li>
+{% endfor %}
+</ul>
+```
+
+##### More context on context
+
+Context processors are functions that receive an HttpRequest and must return a dictionary that merges with any other context that will be passed to a template. The “dark side” of context processors is that they run for all requests.
+
+##### Reusable Chunks Of Templates
+
+Non-reusable file:
+```html
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="styles.css">
+    </head>
+    <body>
+        <h1>Learn about our company</h1>
+    </body>
+</html>
+```
+
+Reusable file (e.g. `base.html`):
+```html
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="styles.css">
+    </head>
+    <body>
+        {% block main %}{% endblock %}
+    </body>
+</html>
+```
+
+Using reusable file:
+```html
+{% extends "base.html" %}
+
+{% block main %}
+    <h1>Hello from the Home page</h1>
+{% endblock %}
+```
+
+Composition of multiple reusable files:
+```html
+<!DOCTYPE html>
+<html>
+    {% include "head.html" %}
+    <body>
+        {% include "navigation.html" %}
+        {% block main %}{% endblock %}
+    </body>
+    {% include "footer.html" %}
+</html>
+```
+
+##### The Templates Toolbox
+
+*From this point, the fourth chapter needs to be revisited in the future. Learning all that theory without actually applying the knowledge in practice doesn't help that much.*
+
+Other useful tags:  
+```html
+<a href="{% url "a_named_view" %}">Go to a named view</a>
+
+&copy; {% now "Y" %} Your Company LLC.
+
+{% spaceless %}
+<ul class="navigation">
+    <li><a href="/home/">Home</a></li>
+    <li><a href="/about/">About</a></li>
+</ul>
+{% endspaceless %}
+```
+
+##### Tools to build templates
+
+Put the tags in the correct location. `templatetags` Python package inside Django application is necessary, with a module inside. It should look like that:
+
+```
+application
++-- templatetags
+|   +-- __init__.py
+|   +-- custom_tags.py
++-- __init__.py
++-- ...
++-- models.py
++-- views.py
+```
+
+Next, one must make a filter and register it:
+```python
+# application/templatetags/custom_tags.py
+
+import random
+from django import template
+
+register = template.Library()
+
+@register.filter
+def add_pizazz(value):
+    pieces_of_flair = [
+	    " Amazing!",
+		" Wowza!",
+		" Unbelievable!",
+	]
+	return value + random.choice(pieces_of_flair)
+```
+
+It may be used with variable like that:
+```html
+{% load custom_tags %}
+
+{{ message|add_pizzazz}}
+```
+Note that loading custom_tags is necessary to use them.
+
+Making tags is very similar to making filters:
+```python
+# application/templatetags/custom_tags.py
+
+import random
+from django import template
+
+register = template.Library()
+
+@register.simple_tag
+def champion_welcome(name, level):
+    if level > 42:
+	    welcome = f"Hello great champion {name}!"
+	elif level > 20:
+	    welcome = f"Greeting noble warrior {name}!"
+	elif level > 5:
+	    welcome = f"Hello {name}."
+	else:
+	    welcome = "Oh, it's you."
+	return welcome
+```
+
+```html
+{% load custom_tags %}
+
+{% champion_welcome "He-Man" 50 %}
+```
+
+Custom tags may be used like any other built-in tag.
+
