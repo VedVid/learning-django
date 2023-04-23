@@ -716,3 +716,27 @@ def champion_welcome(name, level):
 
 Custom tags may be used like any other built-in tag.
 
+#### Chapter 5 – User Interaction With Forms
+
+Django forms are built upon web forms. HTML can describe what kind of data is expected, by using tags. The primary HTML tags are `form`, `input`, and `select`.
+
+`form` tag is container for all data to be sent to the application. `form` has two cricital attributes: `action` and `method`.
+`action` specifies where user data should be sent to. Leaving out `action` or using `action=""` will send data as HTTP request to the same URL that the user's browser is on.
+`method` dictates which HTTP method to use: `GET` or `POST`.
+
+Example:
+```html
+<form method="GET" action="/some/form/">
+    <input type="text" name="message">
+	<button type="submit">Send me!</button>
+</form>
+```
+
+Since the form's method is `GET`, the data will be sent as a part of the URL in a querystring, like `/some/form/message=Hello`. Most useful when the data does not need to be saved, and when the user needs to query something (e.g. setting filters in a web shop).
+
+`POST` method is used when data needs to be secure or saved withing an application. `POST` sends the data in the body of the HTTP request.
+
+`input` tag lets developer set `name` and `type` attributes. `type` may be, among others, `checkbox`, `password` or `text`.
+
+`select` tag lets users make a choice from a list of options.
+
