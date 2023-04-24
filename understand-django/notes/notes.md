@@ -1112,3 +1112,71 @@ class Policy(models.Model):
 		)
 	)
 ```
+
+##### Relational Fields
+
+Simple example of two separate, relational models.
+
+```python
+# application/models.py
+from django.db import models
+
+class Employee(models.Model):
+    first_name = models.CharField(
+	    max_length=100
+	)
+	last_name = models.CharField(
+	    max_length=100
+	)
+	job_title = models.CharField(
+	    max_length=200
+	)
+
+class PhoneNumber(models.Model):
+    number = models.CharField(
+	    max_length=32
+	)
+	PHONE_TYPES = (
+	    (1, "Mobile"),
+		(2, "Home"),
+		(3, "Pager"),
+		(4, "Fax"),
+	)
+	phone_type = models.IntegerField(
+	    choices=PHONE_TYPES,
+		default=1
+	)
+	# Every phone number must be associated with an employee record.
+	employee = models.ForeignKey(
+	    Employee,
+		# When employee is deleted, then all related
+		# phone number will be deleted too.
+		on_delete=models.CASCADE
+	)
+```
+
+Not sure if I understand this part of the tutorial correctly, but it seems that Django adds `AutoField` to *every* model created by the developer? And it's unique integer, so, in fact, it serves as `primary key`? Supposedly, it looks like that: `id = models.AutoField(primary_key=True)`. If model uses primary key of another model, it makes it a `foreig key`.
+
+The code snippet above is example of one-to-many relationship (multiple rows from a table – PhoneNumber – can reference a single row in another table – Employee; in other words, an employee can have multiple phone numbers).
+
+Many-to-many relationship is not that easy to emulate with only primary and foreign keys. However, Django makes it easy with its `ManyToManyField`:
+```python
+# application/models.py
+from django.db import models
+
+class Person(models.Model):
+    name = models.CharField(
+	    max_length=128
+	)
+
+class House(models.Model):
+    address = models.CharField(
+	    max_length=256
+	)
+	residents = models.ManyToManyField(
+	    Person
+	)
+```
+
+On the database level, Django adds new database table to map the relationship between House and Person models. It is necessary, because a single database column cannot hold multiple foreign keys.
+
