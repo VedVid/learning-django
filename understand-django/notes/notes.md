@@ -899,4 +899,36 @@ Three points to remember about:
 * if validation fails, the code should raise a `ValidationError`; Django will handle that and will put the error in the right format in the `errors` attribute of the form
 * if everything is good, be sure to return the cleaned data.
 
+#### Chapter 6 – Store Data With Models
+
+Django uses relational databases (like SQlite, PostreSQL) to store data, and represents data for a database using *models* classes.
+
+Example of model class:
+```python
+# application/models.py
+
+from django.db import models
+
+class Employee(models.Model):
+    first_name = models.CharField(
+	    max_length=100
+	)
+	last_name = models.CharField(
+	    max_length=100
+	)
+	job_title = models.CharField(
+	    max_length=200
+	)
+```
+
+Each model class represents one database table. Instance of class are rows in table.
+
+##### Preparing A Database With Migrations
+
+Migrations are necessary to match database structure and model definitions within project.
+
+***makemigrations*** – command that will create migration files for pending model changes;
+***migrate*** – takes migration files created by `makemigrations` and applies them to a database.
+
+So, after creating a new `Employee` model, one would need to call `python manage.py makemigrations` first, and then `python manage.py migrate`.
 
