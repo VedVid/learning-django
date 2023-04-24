@@ -932,3 +932,109 @@ Migrations are necessary to match database structure and model definitions withi
 
 So, after creating a new `Employee` model, one would need to call `python manage.py makemigrations` first, and then `python manage.py migrate`.
 
+One can also limit which migrations should be executed by providing an app name, like `python manage.py migrate applicationname`.
+
+##### Working With Models
+
+After migrating changes to database, the developer can save the rows to the tables using model's `save` method.
+
+Using `save` on a model record is example of Django ORM (Object Relation Mapper) that translates Python's objects to a relational database.
+
+Most of the ORM operations (like getting all rows from the database or updating a set of rows) work through Manager class that has methods designed for interacting with multiple rows.
+
+Example:
+```python
+>>> from application.models import Employee
+>>> bobs = Employee.objects.filter(first_name="Bob")
+>>> for bob in bobs:
+...     print(f"{bob.first_name} {bob.last_name}"")
+...
+Bob Ross
+Bob Barker
+Bob Marley
+Bob Dylan
+>>> print(bobs.query)
+SELECT
+    "application_employee"."id",
+	"application_employee"."first_name",
+	"application_employee"."last_name",
+	"application_employee"."job_title"
+FROM "application_employee"
+WHERE "application_employee"."first_name" = Bob
+>>> # The price is wrong, Bob!
+>>> Employee.objects.filter(
+... first_name="Bob",
+... last_name="Barker").delete()
+(1, {"application.Employee": 1})
+```
+
+`QuerySet` class has a bunch of methods useful when working with tables. Some of them return a new queryset – useful when it is necessary to apply additional logic for the query.
+```python
+from application.models import Employee
+
+# employees is a QuerySet of all rows!
+employees = Employee.objects.all()
+
+if should_find_the_bobs:
+    # New queryset!
+	employees = employees.filter(
+	    first_name="Bob"
+	)
+```
+
+Some useful QuerySet methods:
+```python
+# create – alternative to creating a record instance and callig 'save'.
+Employee.objects.create(
+    first_name="Bobby",
+	last_name="Tables"
+)
+
+# get – useful when one needs one and exactly one record; it raises expeption when query doesn't match or matches multiple returns
+the_bob = Employee.objects.get(
+    first_name="Bob",
+	last_name="Marley"
+)
+Employee.objects.get(first_name="Bob")
+# Snippet above raises
+# application.models.Employee.MultipleObjectsReturned
+Employee.objects.get(
+    first_name="Bob",
+	last_name="Sagat"
+)
+# Snippet above raises
+# application.models.Employee.DoesNotExist
+
+# exclude – excludes rows that may be part of the existing queryset
+the_other_bobs = (
+    Employee.objects.filter(first_name="Bob")
+	.exclude(last_name="Ross")
+)
+
+# update – updates multiple rows in a single operation
+Employee.objects.filter(
+    first_name="Bob"
+).update(first_name="Robert")
+
+# exists – used to check if matching rows exist in the database
+has_bobs = Employee.objects.filter(
+    first_name="Bob"
+).exists()
+
+# count – checks how many rows match a condition
+how_many_bobs = Employee.objects.filter(
+    first_name="Bob"
+).count()
+
+# none – returns an empty queryset for the model; used when certain data access should be protected
+employees = Employee.objects.all()
+if not is_hr:
+    employees = Employee.objects.none()
+
+# first and last, with order by
+a_bob = Employee.objects.filter(
+    first_name="Bob").order_by(
+	"last_name").last()
+)
+```
+
