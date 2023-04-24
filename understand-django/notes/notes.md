@@ -899,4 +899,284 @@ Three points to remember about:
 * if validation fails, the code should raise a `ValidationError`; Django will handle that and will put the error in the right format in the `errors` attribute of the form
 * if everything is good, be sure to return the cleaned data.
 
+#### Chapter 6 – Store Data With Models
+
+Django uses relational databases (like SQlite, PostreSQL) to store data, and represents data for a database using *models* classes.
+
+Example of model class:
+```python
+# application/models.py
+
+from django.db import models
+
+class Employee(models.Model):
+    first_name = models.CharField(
+	    max_length=100
+	)
+	last_name = models.CharField(
+	    max_length=100
+	)
+	job_title = models.CharField(
+	    max_length=200
+	)
+```
+
+Each model class represents one database table. Instance of class are rows in table.
+
+##### Preparing A Database With Migrations
+
+Migrations are necessary to match database structure and model definitions within project.
+
+***makemigrations*** – command that will create migration files for pending model changes;
+***migrate*** – takes migration files created by `makemigrations` and applies them to a database.
+
+So, after creating a new `Employee` model, one would need to call `python manage.py makemigrations` first, and then `python manage.py migrate`.
+
+One can also limit which migrations should be executed by providing an app name, like `python manage.py migrate applicationname`.
+
+##### Working With Models
+
+After migrating changes to database, the developer can save the rows to the tables using model's `save` method.
+
+Using `save` on a model record is example of Django ORM (Object Relation Mapper) that translates Python's objects to a relational database.
+
+Most of the ORM operations (like getting all rows from the database or updating a set of rows) work through Manager class that has methods designed for interacting with multiple rows.
+
+Example:
+```python
+>>> from application.models import Employee
+>>> bobs = Employee.objects.filter(first_name="Bob")
+>>> for bob in bobs:
+...     print(f"{bob.first_name} {bob.last_name}"")
+...
+Bob Ross
+Bob Barker
+Bob Marley
+Bob Dylan
+>>> print(bobs.query)
+SELECT
+    "application_employee"."id",
+	"application_employee"."first_name",
+	"application_employee"."last_name",
+	"application_employee"."job_title"
+FROM "application_employee"
+WHERE "application_employee"."first_name" = Bob
+>>> # The price is wrong, Bob!
+>>> Employee.objects.filter(
+... first_name="Bob",
+... last_name="Barker").delete()
+(1, {"application.Employee": 1})
+```
+
+`QuerySet` class has a bunch of methods useful when working with tables. Some of them return a new queryset – useful when it is necessary to apply additional logic for the query.
+```python
+from application.models import Employee
+
+# employees is a QuerySet of all rows!
+employees = Employee.objects.all()
+
+if should_find_the_bobs:
+    # New queryset!
+	employees = employees.filter(
+	    first_name="Bob"
+	)
+```
+
+Some useful QuerySet methods:
+```python
+# create – alternative to creating a record instance and callig 'save'.
+Employee.objects.create(
+    first_name="Bobby",
+	last_name="Tables"
+)
+
+# get – useful when one needs one and exactly one record; it raises expeption when query doesn't match or matches multiple returns
+the_bob = Employee.objects.get(
+    first_name="Bob",
+	last_name="Marley"
+)
+Employee.objects.get(first_name="Bob")
+# Snippet above raises
+# application.models.Employee.MultipleObjectsReturned
+Employee.objects.get(
+    first_name="Bob",
+	last_name="Sagat"
+)
+# Snippet above raises
+# application.models.Employee.DoesNotExist
+
+# exclude – excludes rows that may be part of the existing queryset
+the_other_bobs = (
+    Employee.objects.filter(first_name="Bob")
+	.exclude(last_name="Ross")
+)
+
+# update – updates multiple rows in a single operation
+Employee.objects.filter(
+    first_name="Bob"
+).update(first_name="Robert")
+
+# exists – used to check if matching rows exist in the database
+has_bobs = Employee.objects.filter(
+    first_name="Bob"
+).exists()
+
+# count – checks how many rows match a condition
+how_many_bobs = Employee.objects.filter(
+    first_name="Bob"
+).count()
+
+# none – returns an empty queryset for the model; used when certain data access should be protected
+employees = Employee.objects.all()
+if not is_hr:
+    employees = Employee.objects.none()
+
+# first and last, with order by
+a_bob = Employee.objects.filter(
+    first_name="Bob").order_by(
+	"last_name").last()
+)
+```
+
+##### Types Of Model Data
+
+There is a variety of fields (like `CharField`, `BooleanField`, `DateField`, `DateTimeField`) that share many common attributes, like the ones presented below.
+
+`default` attribute – fills the field with default value, allowing creation model record without specifying certain values. The value may be literal or callable function that produces a value.
+```python
+import random
+
+from django.db import models
+
+def strength_generator():
+    random.randint(1, 20)
+
+class DungeonsAndDragonsCharacter(
+    models.Model
+):
+    name = models.CharField(
+	    max_length=100,
+		default="Conan"
+	)
+	# Important! Pass the function,
+	# do not call the function!
+	strength = models.IntegerField(
+	    default=strength_generator
+	)
+```
+
+`unique` attribute – when a field value must be unique for all rows in the table (e.g. for identifiers)
+```python
+class ImprobableHero(models.Model):
+    name = models.CharField(
+	    max_length=100,
+		unique=True
+	)
+```
+
+`null` attribute – to store the absence of data.
+```python
+class Person(models.Model):
+    # This field would always have a value since it can't be null.
+	# Zero counts as a value and is not NULL.
+	age = models.IntegerField()
+	# This field could be unknown and contain NULL.
+	# In Python, a NULL db value will appear as None.
+	weight = models.IntegerField(
+	    null=True
+	)
+```
+
+`blank` attribute – often used with `null` attribute. `blank` allows form validation to permit an empty field.
+```python
+class Pet(models.Model):
+    # Not all pets have tails,
+	# so we want auto-generated forms
+	# to allow no value.
+	length_of_tail = models.IntegerField(
+	    null=True,
+		blank=True
+	)
+```
+
+`help_text` attribute – help text that can be displayed with a field value in the Django administrator site.
+```python
+class Policy(models.Model):
+    is_section_987_123_compliant = models.BooleanField(
+	    default=False,
+		help_text=(
+		"For policies that only apply"
+		" on leap days in accordance"
+		" with Section 987.123"
+		" of the Silly Draconian Order"
+		)
+	)
+```
+
+##### Relational Fields
+
+Simple example of two separate, relational models.
+
+```python
+# application/models.py
+from django.db import models
+
+class Employee(models.Model):
+    first_name = models.CharField(
+	    max_length=100
+	)
+	last_name = models.CharField(
+	    max_length=100
+	)
+	job_title = models.CharField(
+	    max_length=200
+	)
+
+class PhoneNumber(models.Model):
+    number = models.CharField(
+	    max_length=32
+	)
+	PHONE_TYPES = (
+	    (1, "Mobile"),
+		(2, "Home"),
+		(3, "Pager"),
+		(4, "Fax"),
+	)
+	phone_type = models.IntegerField(
+	    choices=PHONE_TYPES,
+		default=1
+	)
+	# Every phone number must be associated with an employee record.
+	employee = models.ForeignKey(
+	    Employee,
+		# When employee is deleted, then all related
+		# phone number will be deleted too.
+		on_delete=models.CASCADE
+	)
+```
+
+Not sure if I understand this part of the tutorial correctly, but it seems that Django adds `AutoField` to *every* model created by the developer? And it's unique integer, so, in fact, it serves as `primary key`? Supposedly, it looks like that: `id = models.AutoField(primary_key=True)`. If model uses primary key of another model, it makes it a `foreig key`.
+
+The code snippet above is example of one-to-many relationship (multiple rows from a table – PhoneNumber – can reference a single row in another table – Employee; in other words, an employee can have multiple phone numbers).
+
+Many-to-many relationship is not that easy to emulate with only primary and foreign keys. However, Django makes it easy with its `ManyToManyField`:
+```python
+# application/models.py
+from django.db import models
+
+class Person(models.Model):
+    name = models.CharField(
+	    max_length=128
+	)
+
+class House(models.Model):
+    address = models.CharField(
+	    max_length=256
+	)
+	residents = models.ManyToManyField(
+	    Person
+	)
+```
+
+On the database level, Django adds new database table to map the relationship between House and Person models. It is necessary, because a single database column cannot hold multiple foreign keys.
 
