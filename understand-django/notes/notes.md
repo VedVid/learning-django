@@ -1038,3 +1038,77 @@ a_bob = Employee.objects.filter(
 )
 ```
 
+##### Types Of Model Data
+
+There is a variety of fields (like `CharField`, `BooleanField`, `DateField`, `DateTimeField`) that share many common attributes, like the ones presented below.
+
+`default` attribute – fills the field with default value, allowing creation model record without specifying certain values. The value may be literal or callable function that produces a value.
+```python
+import random
+
+from django.db import models
+
+def strength_generator():
+    random.randint(1, 20)
+
+class DungeonsAndDragonsCharacter(
+    models.Model
+):
+    name = models.CharField(
+	    max_length=100,
+		default="Conan"
+	)
+	# Important! Pass the function,
+	# do not call the function!
+	strength = models.IntegerField(
+	    default=strength_generator
+	)
+```
+
+`unique` attribute – when a field value must be unique for all rows in the table (e.g. for identifiers)
+```python
+class ImprobableHero(models.Model):
+    name = models.CharField(
+	    max_length=100,
+		unique=True
+	)
+```
+
+`null` attribute – to store the absence of data.
+```python
+class Person(models.Model):
+    # This field would always have a value since it can't be null.
+	# Zero counts as a value and is not NULL.
+	age = models.IntegerField()
+	# This field could be unknown and contain NULL.
+	# In Python, a NULL db value will appear as None.
+	weight = models.IntegerField(
+	    null=True
+	)
+```
+
+`blank` attribute – often used with `null` attribute. `blank` allows form validation to permit an empty field.
+```python
+class Pet(models.Model):
+    # Not all pets have tails,
+	# so we want auto-generated forms
+	# to allow no value.
+	length_of_tail = models.IntegerField(
+	    null=True,
+		blank=True
+	)
+```
+
+`help_text` attribute – help text that can be displayed with a field value in the Django administrator site.
+```python
+class Policy(models.Model):
+    is_section_987_123_compliant = models.BooleanField(
+	    default=False,
+		help_text=(
+		"For policies that only apply"
+		" on leap days in accordance"
+		" with Section 987.123"
+		" of the Silly Draconian Order"
+		)
+	)
+```
