@@ -1180,3 +1180,68 @@ class House(models.Model):
 
 On the database level, Django adds new database table to map the relationship between House and Person models. It is necessary, because a single database column cannot hold multiple foreign keys.
 
+#### Chapter 7 – Administer All The Things
+
+##### What Is The Django Admin?
+
+Accessed by `website.address/admin/` by default, but the location should be changed.
+
+Django admin gives a quick ability to interact with models. One can register a model through the admin panel, and perform CRUD operations on the data.
+
+CRUD is an acronym that describes the primary functions of many websites:
+* **C**reate
+* **R**ead
+* **U**pdate
+* **D**elete
+
+##### Register A Model With The Admin
+
+At the beginning of porject, `admin.py` is mostly empty. Admin site expect a ModelAdmin class for every model.
+Crude example of modeling of a book:
+```python
+# application/models.py
+from django.db import models
+
+class Book(models.Model):
+    title = models.CharField(
+	    max_length=256
+	)
+	author = models.CharField(
+	    max_length=256
+	)
+```
+```python
+# application/admin.py
+from django.contrib import admin
+
+from .models import Book
+
+@admin.register(Book)
+class BookAdmin(admin.ModelAdmin):
+    pass
+```
+
+Alternative to using `register` decorator is directly calling `register` after the class:
+```python
+# application/admin.py
+from django.contrib import admin
+
+from .models import Book
+
+class BookAdmin(admin.ModelAdmin):
+    pass
+
+admin.site.register(Book, BookAdmin)
+```
+
+User account with all permissions is called superuser, and it can be created like that:
+```
+python manage.py createuser
+Username: enter_your_name_here
+Email address: name@example.com
+Password:
+Password (again):
+Superuser created successfully.
+```
+Now it should be possible to log in to the admin site using recently created superuser.
+
