@@ -1245,3 +1245,56 @@ Superuser created successfully.
 ```
 Now it should be possible to log in to the admin site using recently created superuser.
 
+##### Customizing Admin Panel
+
+Django uses `ModelAdmin` class level attributes to define the behaviour of a class. Mastering the Django admin is all about mastering `ModelAdmin` options.
+
+Common attributes:
+* `list_display` – controls which fields will appear on the list page.
+```python
+@admin.register(Book)
+class BookAdmin(admin.ModelAdmin):
+    list_display = ("id", "title")
+```
+* `list_filter` – gives admin list page ability to filter by, let's say, category.
+```python
+@admin.register(Book)
+class BookAdmin(admin.ModelAdmin):
+    list_display = ("id", "title")
+	list_filter = ("category")
+```
+* `date_hierarchy` – filters in time.
+```python
+class Book(models.Model):
+    # ... title, author, category
+	published_date = models.DateField(
+	    default=datetime.date.today
+	)
+	# or, alternatively, use date_hierarchy as a attribute
+	date_hierarchy = "published_date"
+```
+* `ordering` – allows ordering list by a cell, even if ordering is no specified in model's meta options
+```python
+@admin.register(Book)
+class BookAdmin(admin.ModelAdmin):
+    date_hierarchy = "published_date"
+	list_display = ("id", "title")
+	list_filter = ("category",)
+	ordering = ("title",)
+```
+* `search_fields` – adds search bar to the top of the page
+```python
+@admin.register(Book)
+class BookAdmin(admin.ModelAdmin):
+    # ...
+	search_fields = ("author",)
+```
+* `raw_id_fields` – changes admin from using a dropdown to using a basic text input which will display the foreign key of the user record; if the record already has a foreign key for the field, then the string representation of the record will be displayed
+```python
+@admin.register(Book)
+class Book(models.Model):
+    # ...
+	raw_id_fields = ("editor",)
+	search_fields = ("author",)
+```
+
