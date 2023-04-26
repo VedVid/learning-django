@@ -1297,4 +1297,79 @@ class Book(models.Model):
 	raw_id_fields = ("editor",)
 	search_fields = ("author",)
 ```
+*I can't understand example with prepopulated fields and slug field, so let's skip thit for that time.*
+* `inlines` – if one add inline class to the list of inlines, the detail page will show any reviews that are associated with a book:
+```python
+from django.contrib import admin
+
+from .models import Book, Review
+
+class ReviewInline(admin.TabularInline):
+    model = Review
+
+@admin.register(Book)
+class BookAdmin(admin.ModelAdmin):
+    date_hierarchy = "published_date"
+	inlines = [ReviewInline]
+	list_display = ("id", "title")
+	list_filter = ("category",)
+	ordering = ("title",)
+	raw_id_fields = ("editor",)
+	prepopulated_fields = {"slug": ("title",)}
+	search_fields = ("author",)
+```
+
+##### Taking Action In The Admin
+
+"Actions" are customizations of site, capabilities to do work related to specific records in database (?).
+
+Example workflow is selecting rows in the admin panel, selecting "Delete selected objects" then clicking "Go".
+The same kind of flow could be applied to any actions on database records. It can be done by adding methods to ModelAdmin:
+```python
+@admin.register(MyModel)
+class MyModelAdmin(admin.ModelAdmin):
+    actions = ["do_some_action"]
+	
+	def do_some_action(
+	    self,
+		request: HttpRequest,
+		queryset: QuerySet
+	) -> Optional[HttpResponse]:
+	    # Do the work here.
+```
+The queryset represents the set of model records that the user selected. If the method returns `None`, then the user will be returned to the same admin page. If the method returns an HttpResponse, then the user will see that response.
+
+Example of custom action to update the book to be a premiere.
+```python
+# application/admin.py
+
+class ReviewInline(admin.TabularInline):
+    model = Review
+
+def update_premiere(book):
+    print(f"Update {book.title} state to change premiere books.")
+	print("Call some background task to notify interested users via email.")
+
+@admin.register(Book)
+class BookAdmin(admin.ModelAdmin):
+    actions = ["set_premiere"]
+	date_hierarchy = "published_date"
+	inlines = [ReviewInline]
+	list_display = ("id", "title")
+	list_filter = ("category",)
+	ordering = ("title",)
+	raw_id_fields = ("editor",)
+	prepopulated_fields = {"slug": ("title",)}
+	search_fields = ("author",)
+	
+	def set_premiere(
+	    self,
+		request,
+		queryset
+	):
+	    if len(queryset) == 1:
+		    book = queryset[0]
+			update_premiere(book)
+```
+Django will use the name of the method to set the label for the dropdown on the list page. In this case, the action label will be "Set premiere".
 
