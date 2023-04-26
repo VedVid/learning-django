@@ -1180,3 +1180,196 @@ class House(models.Model):
 
 On the database level, Django adds new database table to map the relationship between House and Person models. It is necessary, because a single database column cannot hold multiple foreign keys.
 
+#### Chapter 7 – Administer All The Things
+
+##### What Is The Django Admin?
+
+Accessed by `website.address/admin/` by default, but the location should be changed.
+
+Django admin gives a quick ability to interact with models. One can register a model through the admin panel, and perform CRUD operations on the data.
+
+CRUD is an acronym that describes the primary functions of many websites:
+* **C**reate
+* **R**ead
+* **U**pdate
+* **D**elete
+
+##### Register A Model With The Admin
+
+At the beginning of porject, `admin.py` is mostly empty. Admin site expect a ModelAdmin class for every model.
+Crude example of modeling of a book:
+```python
+# application/models.py
+from django.db import models
+
+class Book(models.Model):
+    title = models.CharField(
+	    max_length=256
+	)
+	author = models.CharField(
+	    max_length=256
+	)
+```
+```python
+# application/admin.py
+from django.contrib import admin
+
+from .models import Book
+
+@admin.register(Book)
+class BookAdmin(admin.ModelAdmin):
+    pass
+```
+
+Alternative to using `register` decorator is directly calling `register` after the class:
+```python
+# application/admin.py
+from django.contrib import admin
+
+from .models import Book
+
+class BookAdmin(admin.ModelAdmin):
+    pass
+
+admin.site.register(Book, BookAdmin)
+```
+
+User account with all permissions is called superuser, and it can be created like that:
+```
+python manage.py createuser
+Username: enter_your_name_here
+Email address: name@example.com
+Password:
+Password (again):
+Superuser created successfully.
+```
+Now it should be possible to log in to the admin site using recently created superuser.
+
+##### Customizing Admin Panel
+
+Django uses `ModelAdmin` class level attributes to define the behaviour of a class. Mastering the Django admin is all about mastering `ModelAdmin` options.
+
+Common attributes:
+* `list_display` – controls which fields will appear on the list page.
+```python
+@admin.register(Book)
+class BookAdmin(admin.ModelAdmin):
+    list_display = ("id", "title")
+```
+* `list_filter` – gives admin list page ability to filter by, let's say, category.
+```python
+@admin.register(Book)
+class BookAdmin(admin.ModelAdmin):
+    list_display = ("id", "title")
+	list_filter = ("category")
+```
+* `date_hierarchy` – filters in time.
+```python
+class Book(models.Model):
+    # ... title, author, category
+	published_date = models.DateField(
+	    default=datetime.date.today
+	)
+	# or, alternatively, use date_hierarchy as a attribute
+	date_hierarchy = "published_date"
+```
+* `ordering` – allows ordering list by a cell, even if ordering is no specified in model's meta options
+```python
+@admin.register(Book)
+class BookAdmin(admin.ModelAdmin):
+    date_hierarchy = "published_date"
+	list_display = ("id", "title")
+	list_filter = ("category",)
+	ordering = ("title",)
+```
+* `search_fields` – adds search bar to the top of the page
+```python
+@admin.register(Book)
+class BookAdmin(admin.ModelAdmin):
+    # ...
+	search_fields = ("author",)
+```
+* `raw_id_fields` – changes admin from using a dropdown to using a basic text input which will display the foreign key of the user record; if the record already has a foreign key for the field, then the string representation of the record will be displayed
+```python
+@admin.register(Book)
+class Book(models.Model):
+    # ...
+	raw_id_fields = ("editor",)
+	search_fields = ("author",)
+```
+*I can't understand example with prepopulated fields and slug field, so let's skip thit for that time.*
+* `inlines` – if one add inline class to the list of inlines, the detail page will show any reviews that are associated with a book:
+```python
+from django.contrib import admin
+
+from .models import Book, Review
+
+class ReviewInline(admin.TabularInline):
+    model = Review
+
+@admin.register(Book)
+class BookAdmin(admin.ModelAdmin):
+    date_hierarchy = "published_date"
+	inlines = [ReviewInline]
+	list_display = ("id", "title")
+	list_filter = ("category",)
+	ordering = ("title",)
+	raw_id_fields = ("editor",)
+	prepopulated_fields = {"slug": ("title",)}
+	search_fields = ("author",)
+```
+
+##### Taking Action In The Admin
+
+"Actions" are customizations of site, capabilities to do work related to specific records in database (?).
+
+Example workflow is selecting rows in the admin panel, selecting "Delete selected objects" then clicking "Go".
+The same kind of flow could be applied to any actions on database records. It can be done by adding methods to ModelAdmin:
+```python
+@admin.register(MyModel)
+class MyModelAdmin(admin.ModelAdmin):
+    actions = ["do_some_action"]
+	
+	def do_some_action(
+	    self,
+		request: HttpRequest,
+		queryset: QuerySet
+	) -> Optional[HttpResponse]:
+	    # Do the work here.
+```
+The queryset represents the set of model records that the user selected. If the method returns `None`, then the user will be returned to the same admin page. If the method returns an HttpResponse, then the user will see that response.
+
+Example of custom action to update the book to be a premiere.
+```python
+# application/admin.py
+
+class ReviewInline(admin.TabularInline):
+    model = Review
+
+def update_premiere(book):
+    print(f"Update {book.title} state to change premiere books.")
+	print("Call some background task to notify interested users via email.")
+
+@admin.register(Book)
+class BookAdmin(admin.ModelAdmin):
+    actions = ["set_premiere"]
+	date_hierarchy = "published_date"
+	inlines = [ReviewInline]
+	list_display = ("id", "title")
+	list_filter = ("category",)
+	ordering = ("title",)
+	raw_id_fields = ("editor",)
+	prepopulated_fields = {"slug": ("title",)}
+	search_fields = ("author",)
+	
+	def set_premiere(
+	    self,
+		request,
+		queryset
+	):
+	    if len(queryset) == 1:
+		    book = queryset[0]
+			update_premiere(book)
+```
+Django will use the name of the method to set the label for the dropdown on the list page. In this case, the action label will be "Set premiere".
+
