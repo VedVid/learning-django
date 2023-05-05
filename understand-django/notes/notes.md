@@ -1373,3 +1373,56 @@ class BookAdmin(admin.ModelAdmin):
 ```
 Django will use the name of the method to set the label for the dropdown on the list page. In this case, the action label will be "Set premiere".
 
+
+#### Chapter 8 – Anatomy Of An Application
+
+In Django terms, "web application" is a Django *project*.
+The primary components of the project are *applications*.
+Therefore, a Django *project* is built from one or more Django *applications*.
+
+##### Application structure
+
+The default Django application structure looks like that:
+```
+appname
++-- __init__.py
++-- admin.py  # Handles `ModelAdmin` classes.
++-- apps.py  # `AppConfig` of the application.
++-- migrations.py  # Handles database migrations.
+| +-- __init__.py 
++-- models.py  # All Django `Model`s representing db data.
++-- tests.py  # File for automated tests.
++-- views.py  # View functions or Class-Based Views
+```
+
+Other commonly used files:
+`urls.py` – file often used to create routes that logically group all related functionality.
+`forms.py` – stores forms created with Django `Form` classes.
+`templatetags` – directory / package that would include a module like movies_tags.py with custom template tags to render templates.
+`templates` – directory that stores templates.
+`static` – directory for static files like images.
+`management` – to extend Django with custom commands to be called via `manage.py`.
+`locale` – directory for storing translations.
+`managers.py` – sometimes used to separate managers from models if there is a lot of custom managers withing an application.
+
+##### Loading applications
+
+In order to include app in a project, the app must be added to `INSTALLED_APPS` list in the settings file.
+
+On startup, when an application is in `INSTALLED_APPS`, Django will look for an `AppConfig` class stored in `apps.py`.
+
+When Django starts, it do as following:
+- load the settings
+- configure logging
+- initialize an application registry
+- import each package from the `INSTALLED_APPS`
+- import models module for each application
+- invoke the `ready` method of every `AppConfig` discovered
+
+`ready` method is a useful hook for taking action at startup. Models are already loaded so it's a safe place to interact with Django.
+
+##### Ecosystem Applications
+
+An application is an important tool for grouping the different logical components of a project.
+But apps are also the basis for most of the 3rd party extensions in the Django ecosystem.
+
